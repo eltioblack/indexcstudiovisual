@@ -1,0 +1,876 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#050507">
+<title>Black Wings · Studio</title>
+
+<!-- PWA / instalación en iPhone -->
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="BW Studio">
+<link rel="apple-touch-icon" sizes="180x180" href="icons/apple-touch-icon-180.png">
+<link rel="apple-touch-icon" sizes="167x167" href="icons/apple-touch-icon-167.png">
+<link rel="apple-touch-icon" sizes="152x152" href="icons/apple-touch-icon-152.png">
+<link rel="apple-touch-icon" sizes="120x120" href="icons/apple-touch-icon-120.png">
+<link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Barlow+Condensed:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#050507;
+    --yellow:#FFE600;
+    --alien:#39FF14;
+    --ink:#e9e9ec;
+    --muted:#8a8a93;
+    --line:rgba(255,255,255,.09);
+    --panel:#0c0c10;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{background:var(--bg);color:var(--ink);font-family:"Barlow Condensed",sans-serif;-webkit-font-smoothing:antialiased}
+  body{
+    min-height:100vh;
+    background:
+      radial-gradient(1200px 600px at 80% -10%, rgba(57,255,20,.05), transparent 60%),
+      radial-gradient(900px 500px at -10% 110%, rgba(255,230,0,.04), transparent 55%),
+      var(--bg);
+    overflow-x:hidden;
+    padding-bottom:env(safe-area-inset-bottom);
+  }
+  /* starfield + scanlines */
+  .fx{position:fixed;inset:0;pointer-events:none;z-index:0}
+  .scan{background:repeating-linear-gradient(to bottom,rgba(255,255,255,.025) 0 1px,transparent 1px 3px);opacity:.5}
+  .stars{background-image:radial-gradient(1px 1px at 20% 30%,#fff,transparent),radial-gradient(1px 1px at 70% 60%,#fff,transparent),radial-gradient(1px 1px at 40% 80%,#fff,transparent),radial-gradient(1px 1px at 90% 20%,#fff,transparent),radial-gradient(1px 1px at 55% 10%,#fff,transparent);background-repeat:repeat;background-size:340px 340px;opacity:.18;animation:drift 90s linear infinite}
+  @keyframes drift{from{background-position:0 0}to{background-position:340px 680px}}
+
+  .wrap{position:relative;z-index:1;max-width:760px;margin:0 auto;padding:calc(22px + env(safe-area-inset-top)) 16px 60px}
+
+  header{display:flex;align-items:center;gap:14px;padding:6px 0 18px;border-bottom:1px solid var(--line);margin-bottom:22px}
+  .mark{width:46px;height:46px;flex:0 0 auto;border:1.5px solid var(--yellow);border-radius:10px;display:grid;place-items:center;position:relative;overflow:hidden;background:#000}
+  .mark span{font-family:"Bebas Neue";font-size:22px;letter-spacing:1px;color:var(--yellow);line-height:1}
+  .mark::after{content:"";position:absolute;inset:0;background:linear-gradient(115deg,transparent 40%,rgba(57,255,20,.25) 50%,transparent 60%);animation:sheen 4s ease-in-out infinite}
+  @keyframes sheen{0%,70%{transform:translateX(-120%)}85%,100%{transform:translateX(120%)}}
+  .title h1{font-family:"Bebas Neue";font-size:30px;letter-spacing:1.5px;line-height:.95}
+  .title h1 b{color:var(--yellow);font-weight:400}
+  .title p{font-family:"Space Mono";font-size:10px;letter-spacing:2px;color:var(--alien);text-transform:uppercase;margin-top:3px}
+
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:18px;margin-bottom:16px}
+  .lab{font-family:"Space Mono";font-size:10px;letter-spacing:2px;color:var(--muted);text-transform:uppercase;margin-bottom:10px;display:flex;align-items:center;gap:8px}
+  .lab b{color:var(--yellow)}
+
+  .drop{border:1.5px dashed var(--line);border-radius:14px;padding:22px;text-align:center;cursor:pointer;transition:.2s;background:rgba(255,255,255,.012)}
+  .drop:hover,.drop.hot{border-color:var(--yellow);background:rgba(255,230,0,.05)}
+  .drop .big{font-family:"Bebas Neue";font-size:22px;letter-spacing:1px;color:var(--ink)}
+  .drop .sm{font-family:"Space Mono";font-size:11px;color:var(--muted);margin-top:6px}
+  .thumbs{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px}
+  .thumb{width:74px;height:74px;border-radius:10px;border:1px solid var(--line);object-fit:cover;background:#000;position:relative}
+  .thumb.active{border-color:var(--alien);box-shadow:0 0 0 1px var(--alien)}
+
+  .logoRow{display:flex;align-items:center;gap:14px}
+  .logoPrev{width:60px;height:60px;border-radius:10px;border:1px solid var(--line);background:repeating-conic-gradient(#1a1a1f 0 25%,#101014 0 50%) 50%/16px 16px;display:grid;place-items:center;overflow:hidden}
+  .logoPrev img{max-width:100%;max-height:100%}
+  .logoPrev span{font-family:"Space Mono";font-size:8px;color:var(--muted)}
+
+  .ctrls{display:grid;grid-template-columns:1fr;gap:16px}
+  .ctrl label{display:flex;justify-content:space-between;font-family:"Space Mono";font-size:11px;color:var(--muted);margin-bottom:7px}
+  .ctrl label b{color:var(--yellow)}
+  input[type=range]{-webkit-appearance:none;width:100%;height:3px;background:var(--line);border-radius:2px;outline:none}
+  input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;height:18px;border-radius:50%;background:var(--yellow);cursor:pointer;border:3px solid #000;box-shadow:0 0 0 1px var(--yellow)}
+  input[type=range]::-moz-range-thumb{width:14px;height:14px;border-radius:50%;background:var(--yellow);cursor:pointer;border:2px solid #000}
+
+  .seg{display:flex;gap:8px}
+  .seg button{flex:1;background:#000;border:1px solid var(--line);color:var(--muted);font-family:"Barlow Condensed";font-weight:600;font-size:14px;padding:9px;border-radius:9px;cursor:pointer;letter-spacing:.5px}
+  .seg button.on{border-color:var(--yellow);color:var(--yellow);background:rgba(255,230,0,.06)}
+
+  .go{width:100%;background:var(--yellow);color:#000;border:none;border-radius:13px;padding:16px;font-family:"Bebas Neue";font-size:24px;letter-spacing:1.5px;cursor:pointer;transition:.15s;display:flex;align-items:center;justify-content:center;gap:10px}
+  .go:hover{filter:brightness(1.08)}
+  .go:disabled{opacity:.4;cursor:not-allowed}
+  .ghost{width:100%;background:transparent;color:var(--alien);border:1px solid var(--alien);border-radius:13px;padding:13px;font-family:"Barlow Condensed";font-weight:600;font-size:15px;letter-spacing:1px;cursor:pointer;margin-top:10px}
+  .ghost:disabled{opacity:.35;cursor:not-allowed}
+
+  .stage{position:relative;border-radius:14px;overflow:hidden;border:1px solid var(--line);background:#000;min-height:200px;display:grid;place-items:center}
+  .stage canvas{max-width:100%;height:auto;display:block}
+  .empty{font-family:"Space Mono";font-size:12px;color:var(--muted);padding:50px 20px;text-align:center;line-height:1.7}
+  .empty b{color:var(--yellow)}
+
+  .status{font-family:"Space Mono";font-size:11px;letter-spacing:.5px;margin-top:12px;min-height:16px;color:var(--alien)}
+  .status.err{color:#ff5757}
+  .bar{height:3px;background:var(--line);border-radius:2px;overflow:hidden;margin-top:8px}
+  .bar i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--alien),var(--yellow));transition:width .3s}
+
+  .note{font-family:"Space Mono";font-size:10.5px;color:var(--muted);line-height:1.7;margin-top:8px}
+  .note b{color:var(--yellow)}
+  footer{text-align:center;font-family:"Space Mono";font-size:9px;letter-spacing:2px;color:var(--muted);margin-top:30px;text-transform:uppercase}
+
+  .orbit{position:absolute;border:1px solid rgba(57,255,20,.12);border-radius:50%;animation:spin 30s linear infinite;pointer-events:none}
+  @keyframes spin{to{transform:rotate(360deg)}}
+</style>
+</head>
+<body>
+<div class="fx scan"></div>
+<div class="fx stars"></div>
+
+<div class="wrap">
+  <header>
+    <div class="mark"><span>BW</span></div>
+    <div class="title">
+      <h1>BLACK WINGS <b>STUDIO</b></h1>
+      <p>Catálogo automático · piezas BMX</p>
+    </div>
+    <div style="margin-left:auto;text-align:right;flex:0 0 auto">
+      <div style="font-family:'Bebas Neue';font-size:30px;color:var(--alien);line-height:1">v14</div>
+      <div style="font-family:'Space Mono';font-size:9px;color:var(--muted);letter-spacing:1px">29 MAY · 02:00</div>
+    </div>
+  </header>
+
+  <!-- 1. FOTOS -->
+  <div class="card">
+    <div class="lab"><b>01</b> Fotos de la pieza</div>
+    <div class="drop" id="drop">
+      <div class="big">Tomar foto / Subir</div>
+      <div class="sm">Cualquier fondo · puedes cargar varias</div>
+    </div>
+    <input type="file" id="fileIn" accept="image/*" capture="environment" multiple hidden>
+    <div class="thumbs" id="thumbs"></div>
+  </div>
+
+  <!-- 2. LOGO -->
+  <div class="card">
+    <div class="lab"><b>02</b> Logo (marca de agua)</div>
+    <div class="logoRow">
+      <div class="logoPrev" id="logoPrev"><span>sin logo</span></div>
+      <div style="flex:1">
+        <button class="ghost" id="logoBtn" style="margin:0">Cargar logo Black Wings (PNG)</button>
+        <div class="note">Usa el PNG con fondo transparente. Se recolorea a <b>gris claro</b> automáticamente.</div>
+      </div>
+    </div>
+    <input type="file" id="logoIn" accept="image/png,image/*" hidden>
+  </div>
+
+  <!-- 3. AJUSTES -->
+  <div class="card">
+    <div class="lab"><b>03</b> Ajustes de estudio</div>
+    <div class="ctrls">
+      <div class="ctrl">
+        <label>Recorte del fondo <b id="vCut">nube · Pro</b></label>
+        <div class="seg" id="cutSeg">
+          <button data-v="cloud" class="on">Nube · Pro</button>
+          <button data-v="ai">IA local</button>
+          <button data-v="white">Fondo blanco</button>
+        </div>
+        <div class="note"><b>Nube · Pro</b> (recomendado): recorte profesional vía remove.bg, calidad de catálogo, sin retoques manuales. Pega tu API key abajo. <b>IA local</b> y <b>Fondo blanco</b> funcionan sin clave ni conexión.</div>
+      </div>
+      <div class="ctrl" id="apiWrap">
+        <label>API key de remove.bg <b id="vApi" style="color:var(--alien)">nube · Pro</b></label>
+        <input type="text" id="apiKey" placeholder="pega aquí tu API key" autocomplete="off" spellcheck="false"
+          style="width:100%;background:#000;border:1px solid var(--line);color:var(--alien);font-family:'Space Mono';font-size:12px;padding:12px;border-radius:9px;outline:none">
+        <div class="note">Gratis ~50 imágenes/mes en remove.bg (My Account → API Keys). La clave queda solo en este dispositivo para esta sesión; no se sube a ningún lado.</div>
+      </div>
+      <div class="ctrl" id="tolWrap" style="display:none">
+        <label>Tolerancia de blanco <b id="vTol">medio</b></label>
+        <input type="range" id="tol" min="20" max="85" value="58">
+        <div class="note">Solo para el modo "Fondo blanco". Si deja blanco sucio, <b>súbelo</b>; si se come bordes claros, <b>bájalo</b>.</div>
+      </div>
+      <div class="ctrl">
+        <label>Refinar borde (filtro guiado) <b id="vRef">on</b></label>
+        <div class="seg" id="refSeg">
+          <button data-v="1" class="on">Activado</button>
+          <button data-v="0">Desactivado</button>
+        </div>
+        <div class="note">Afina el contorno siguiendo los bordes reales de la pieza y quita el halo blanco. Si en alguna pieza recorta de más, <b>desactívalo</b> para volver al recorte exacto de antes.</div>
+      </div>
+      <div class="ctrl">
+        <label>Salida <b id="vOut">fondo blanco</b></label>
+        <div class="seg" id="outSeg">
+          <button data-v="white" class="on">Fondo blanco</button>
+          <button data-v="alpha">PNG transparente</button>
+        </div>
+      </div>
+      <div class="ctrl">
+        <label>Resolución de salida <b id="vRes">2600 px</b></label>
+        <div class="seg" id="resSeg">
+          <button data-v="1920">FHD</button>
+          <button data-v="2600" class="on">2600</button>
+          <button data-v="3000">3000</button>
+          <button data-v="3500">3500</button>
+        </div>
+      </div>
+      <div class="ctrl">
+        <label>Tamaño de la pieza <b id="vSize">80%</b></label>
+        <input type="range" id="size" min="40" max="200" value="80">
+        <div class="note">Más de 100% acerca la pieza (puede salirse del lienzo para un encuadre tipo detalle).</div>
+      </div>
+      <div class="ctrl">
+        <label>Posición del logo <b id="vLogoPos">centro de la pieza</b></label>
+        <div class="seg" id="logoPosSeg" style="flex-wrap:wrap">
+          <button data-v="center" class="on">Centro</button>
+          <button data-v="tl">Sup. izq.</button>
+          <button data-v="tr">Sup. der.</button>
+          <button data-v="bl">Inf. izq.</button>
+          <button data-v="br">Inf. der.</button>
+        </div>
+        <div class="note"><b>Centro</b>: marca de agua sobre la pieza. Las esquinas colocan el logo en los extremos de la imagen.</div>
+      </div>
+      <div class="ctrl">
+        <label>Ancho del logo <b id="vLogo">55%</b></label>
+        <input type="range" id="logoW" min="20" max="200" value="55">
+        <div class="note" id="logoWnote">% del ancho de la pieza (en centro) o del lienzo (en esquinas). Más de 100% = logo más grande que la pieza.</div>
+      </div>
+      <div class="ctrl">
+        <label>Opacidad marca de agua <b id="vOp">18%</b></label>
+        <input type="range" id="op" min="8" max="30" value="18">
+      </div>
+      <div class="ctrl">
+        <label>Sombra de estudio <b id="vSh">media</b></label>
+        <input type="range" id="sh" min="0" max="100" value="42">
+      </div>
+      <div class="ctrl">
+        <label>Halo espacial (negro, detrás) <b id="vHa">sutil</b></label>
+        <input type="range" id="ha" min="0" max="100" value="28">
+      </div>
+      <div class="ctrl">
+        <label>Mejora (luz · contraste · nitidez) <b id="vEn">on</b></label>
+        <div class="seg" id="enhSeg">
+          <button data-v="1" class="on">Activado</button>
+          <button data-v="0">Desactivado</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ACCIÓN -->
+  <div class="card">
+    <button class="go" id="go" disabled>⬡ PROCESAR PIEZA</button>
+    <div class="status" id="status">Sube una foto para empezar.</div>
+    <div class="bar"><i id="prog"></i></div>
+  </div>
+
+  <!-- RESULTADO -->
+  <div class="card">
+    <div class="lab"><b>04</b> Resultado</div>
+    <div class="stage" id="stage">
+      <div class="empty">El resultado aparecerá aquí en<br><b>fondo blanco puro</b> con tu marca de agua.</div>
+    </div>
+    <button class="ghost" id="dl" disabled style="margin-top:14px">⬇ Descargar PNG en alta calidad</button>
+    <button class="ghost" id="batch" disabled>Procesar TODAS las fotos cargadas</button>
+  </div>
+
+  <footer>Black Wings BMX · prototipo · procesado 100% en tu dispositivo</footer>
+</div>
+
+<script type="module">
+import { removeBackground } from "https://esm.sh/@imgly/background-removal@1.5.8";
+import JSZip from "https://esm.sh/jszip@3.10.1";
+
+const $ = id => document.getElementById(id);
+const state = { photos: [], active: -1, logo: null, lastCanvas: null };
+
+/* ---------- inputs de archivos ---------- */
+const drop = $('drop'), fileIn = $('fileIn');
+drop.onclick = () => fileIn.click();
+['dragover','dragenter'].forEach(e=>drop.addEventListener(e,ev=>{ev.preventDefault();drop.classList.add('hot')}));
+['dragleave','drop'].forEach(e=>drop.addEventListener(e,ev=>{ev.preventDefault();drop.classList.remove('hot')}));
+drop.addEventListener('drop', ev => addPhotos(ev.dataTransfer.files));
+fileIn.onchange = () => addPhotos(fileIn.files);
+
+function addPhotos(files){
+  [...files].forEach(f => { if(f.type.startsWith('image/')) state.photos.push(f); });
+  if(state.active < 0 && state.photos.length) state.active = 0;
+  renderThumbs(); refreshButtons();
+}
+function renderThumbs(){
+  const c = $('thumbs'); c.innerHTML='';
+  state.photos.forEach((f,i)=>{
+    const img = document.createElement('img');
+    img.className = 'thumb' + (i===state.active?' active':'');
+    img.src = URL.createObjectURL(f);
+    img.onclick = ()=>{ state.active=i; renderThumbs(); };
+    c.appendChild(img);
+  });
+}
+
+/* ---------- logo ---------- */
+$('logoBtn').onclick = e => { e.preventDefault(); $('logoIn').click(); };
+$('logoIn').onchange = async () => {
+  const f = $('logoIn').files[0]; if(!f) return;
+  state.logo = await loadImage(URL.createObjectURL(f));
+  const p = $('logoPrev'); p.innerHTML=''; const im=document.createElement('img'); im.src=state.logo.src; p.appendChild(im);
+};
+
+/* ---------- sliders ---------- */
+const bind = (id, out, fmt) => { const el=$(id); const o=$(out); const u=()=>o.textContent=fmt(el.value); el.oninput=u; u(); };
+bind('size','vSize',v=>v+'%');
+bind('logoW','vLogo',v=>v+'%');
+bind('op','vOp',v=>v+'%');
+bind('sh','vSh',v=> v<25?'leve':v<60?'media':'fuerte');
+bind('ha','vHa',v=> v<20?'mínimo':v<55?'sutil':'marcado');
+function seg(id, cb){ const box=$(id); box.querySelectorAll('button').forEach(b=>b.onclick=()=>{box.querySelectorAll('button').forEach(x=>x.classList.remove('on'));b.classList.add('on');cb(b.dataset.v);}); }
+let RES=2600, ENH=1, CUT='cloud', REF=1, OUTBG='white', LOGOPOS='center';
+seg('resSeg', v=>{RES=+v; $('vRes').textContent=(v==='1920'?'FHD 1920':v+' px');});
+seg('enhSeg', v=>{ENH=+v; $('vEn').textContent=v==='1'?'on':'off';});
+seg('refSeg', v=>{REF=+v; $('vRef').textContent=v==='1'?'on':'off';});
+seg('outSeg', v=>{OUTBG=v; $('vOut').textContent=v==='white'?'fondo blanco':'transparente';});
+seg('logoPosSeg', v=>{LOGOPOS=v;
+  const names={center:'centro de la pieza',tl:'superior izquierda',tr:'superior derecha',bl:'inferior izquierda',br:'inferior derecha'};
+  $('vLogoPos').textContent=names[v];
+  $('logoWnote').textContent = v==='center' ? '% del ancho de la pieza.' : '% del ancho de la imagen.';
+});
+seg('cutSeg', v=>{CUT=v;
+  $('vCut').textContent = v==='cloud'?'nube · Pro' : v==='white'?'fondo blanco' : 'IA local';
+  $('apiWrap').style.display = v==='cloud'?'':'none';
+  $('tolWrap').style.display = v==='white'?'':'none';
+});
+bind('tol','vTol', v=> v<38?'bajo':v<62?'medio':'alto');
+
+/* ---------- helpers ---------- */
+function loadImage(src){ return new Promise((res,rej)=>{const i=new Image();i.crossOrigin='anonymous';i.onload=()=>res(i);i.onerror=rej;i.src=src;}); }
+function setStatus(t,err=false){ const s=$('status'); s.textContent=t; s.classList.toggle('err',err); }
+function setProg(p){ $('prog').style.width=(p*100)+'%'; }
+function refreshButtons(){ const ok=state.active>=0; $('go').disabled=!ok; $('batch').disabled=!ok||state.photos.length<2; }
+
+/* recorta bordes transparentes y devuelve {canvas, bbox} */
+function trim(srcCanvas){
+  const w=srcCanvas.width,h=srcCanvas.height;
+  const d=srcCanvas.getContext('2d').getImageData(0,0,w,h).data;
+  let x0=w,y0=h,x1=0,y1=0,found=false;
+  for(let y=0;y<h;y++)for(let x=0;x<w;x++){ if(d[(y*w+x)*4+3]>12){found=true;if(x<x0)x0=x;if(x>x1)x1=x;if(y<y0)y0=y;if(y>y1)y1=y;} }
+  if(!found) return {canvas:srcCanvas};
+  const tw=x1-x0+1, th=y1-y0+1;
+  const o=document.createElement('canvas'); o.width=tw; o.height=th;
+  o.getContext('2d').drawImage(srcCanvas,x0,y0,tw,th,0,0,tw,th);
+  return {canvas:o};
+}
+
+/* --- filtro guiado: refina el borde del recorte siguiendo los contornos reales --- */
+function boxIntegral(src,w,h,r){
+  const W=w+1, ii=new Float64Array(W*(h+1));
+  for(let y=0;y<h;y++){let row=0;for(let x=0;x<w;x++){row+=src[y*w+x];ii[(y+1)*W+(x+1)]=ii[y*W+(x+1)]+row;}}
+  const out=new Float32Array(w*h);
+  for(let y=0;y<h;y++)for(let x=0;x<w;x++){
+    const x0=Math.max(0,x-r),y0=Math.max(0,y-r),x1=Math.min(w-1,x+r),y1=Math.min(h-1,y+r);
+    const s=ii[(y1+1)*W+(x1+1)]-ii[y0*W+(x1+1)]-ii[(y1+1)*W+x0]+ii[y0*W+x0];
+    out[y*w+x]=s/((x1-x0+1)*(y1-y0+1));
+  } return out;
+}
+function guided(gray,p,w,h,r,eps){
+  const N=w*h, mI=boxIntegral(gray,w,h,r), mp=boxIntegral(p,w,h,r);
+  const Ip=new Float32Array(N), II=new Float32Array(N);
+  for(let i=0;i<N;i++){Ip[i]=gray[i]*p[i];II[i]=gray[i]*gray[i];}
+  const mIp=boxIntegral(Ip,w,h,r), mII=boxIntegral(II,w,h,r);
+  const a=new Float32Array(N), b=new Float32Array(N);
+  for(let i=0;i<N;i++){const cov=mIp[i]-mI[i]*mp[i],vI=mII[i]-mI[i]*mI[i],ai=cov/(vI+eps);a[i]=ai;b[i]=mp[i]-ai*mI[i];}
+  const ma=boxIntegral(a,w,h,r), mb=boxIntegral(b,w,h,r), q=new Float32Array(N);
+  for(let i=0;i<N;i++) q[i]=Math.max(0,Math.min(1,ma[i]*gray[i]+mb[i]));
+  return q;
+}
+/* solidifica zonas borrosas/2º plano UNIDAS a la pieza (las deja opacas y normales)
+   y elimina solo motas realmente sueltas. */
+function solidify(A,w,h){
+  const N=w*h, soft=new Uint8Array(N), core=new Uint8Array(N);
+  for(let i=0;i<N;i++){ soft[i]=A[i]>0.25?1:0; core[i]=A[i]>0.7?1:0; }
+  const lab=new Int32Array(N), q=new Int32Array(N), hasCore=[0]; let comp=0;
+  for(let s=0;s<N;s++){ if(soft[s]&&!lab[s]){comp++;let hh=0,tt=0;q[tt++]=s;lab[s]=comp;let hc=0;
+    while(hh<tt){const i=q[hh++];if(core[i])hc=1;const x=i%w,y=(i/w)|0;
+      if(x>0&&soft[i-1]&&!lab[i-1]){lab[i-1]=comp;q[tt++]=i-1;}
+      if(x<w-1&&soft[i+1]&&!lab[i+1]){lab[i+1]=comp;q[tt++]=i+1;}
+      if(y>0&&soft[i-w]&&!lab[i-w]){lab[i-w]=comp;q[tt++]=i-w;}
+      if(y<h-1&&soft[i+w]&&!lab[i+w]){lab[i+w]=comp;q[tt++]=i+w;}}
+    hasCore[comp]=hc; } }
+  const keep=new Uint8Array(N);
+  for(let i=0;i<N;i++) keep[i]=(soft[i]&&hasCore[lab[i]])?1:0;
+  const f=new Float32Array(N); for(let i=0;i<N;i++) f[i]=keep[i]?1:0;
+  const blur=src=>{const b=new Float32Array(N);
+    for(let y=0;y<h;y++)for(let x=0;x<w;x++){let s=0,c=0;
+      for(let dy=-1;dy<=1;dy++)for(let dx=-1;dx<=1;dx++){const xx=x+dx,yy=y+dy;
+        if(xx>=0&&xx<w&&yy>=0&&yy<h){s+=src[yy*w+xx];c++;}} b[y*w+x]=s/c;} return b;};
+  const ff=blur(f);
+  const out=new Float32Array(N);
+  for(let i=0;i<N;i++) out[i]= keep[i]?1:Math.max(0,Math.min(1,ff[i]*0.6));
+  return out;
+}
+/* refina alpha con filtro guiado + descontamina SOLO el borde fino; conserva lo borroso */
+function refineEdge(canvas){
+  let w=canvas.width,h=canvas.height; const cap=2600;
+  if(Math.max(w,h)>cap){
+    const k=cap/Math.max(w,h), nw=Math.round(w*k), nh=Math.round(h*k);
+    const tmp=document.createElement('canvas'); tmp.width=w; tmp.height=h; tmp.getContext('2d').drawImage(canvas,0,0);
+    canvas.width=nw; canvas.height=nh; canvas.getContext('2d').drawImage(tmp,0,0,nw,nh); w=nw; h=nh;
+  }
+  const ctx=canvas.getContext('2d',{willReadFrequently:true});
+  const im=ctx.getImageData(0,0,w,h), d=im.data, N=w*h;
+  const gray=new Float32Array(N), p=new Float32Array(N);
+  for(let i=0,j=0;i<N;i++,j+=4){ gray[i]=(0.299*d[j]+0.587*d[j+1]+0.114*d[j+2])/255; p[i]=d[j+3]/255; }
+  const r=Math.max(3, Math.round(Math.min(w,h)*0.005));
+  let A = guided(gray,p,w,h,r,1.0e-4);
+  // sella el borde y conserva zonas unidas; elimina motas sueltas
+  A=solidify(A,w,h);
+  // banda de borde (para descontaminar solo ahí, sin tocar interiores borrosos)
+  const edge=new Uint8Array(N);
+  for(let y=0;y<h;y++)for(let x=0;x<w;x++){const i=y*w+x; const a=A[i];
+    if(a>0.05 && a<0.95){edge[i]=1;continue;}
+    if(a>=0.95){ if((x>0&&A[i-1]<0.95)||(x<w-1&&A[i+1]<0.95)||(y>0&&A[i-w]<0.95)||(y<h-1&&A[i+w]<0.95))edge[i]=1; } }
+  for(let i=0,j=0;i<N;i++,j+=4){
+    const a=A[i]; d[j+3]=Math.round(a*255);
+    if(edge[i] && a>0.12 && a<0.98){ for(let c=0;c<3;c++){ d[j+c]=Math.max(0,Math.min(255,(d[j+c]-(1-a)*255)/Math.max(a,0.12))); } }
+  }
+  ctx.putImageData(im,0,0);
+  return canvas;
+}
+
+/* RECORTE POR FONDO BLANCO (robusto):
+   1) relleno conectado desde los bordes (solo borra blanco del fondo; conserva
+      cromados encerrados y detalles finos de la pieza)
+   2) se queda con los componentes grandes -> elimina islas grises irregulares del fondo
+   3) cierre morfológico -> sella fugas finas por reflejos del cromo
+   4) suaviza el borde (feather). tol 20..85 = cuánto blanco/sombra es fondo. */
+function whiteKey(canvas, tol){
+  const ctx=canvas.getContext('2d',{willReadFrequently:true});
+  const w=canvas.width, h=canvas.height, N=w*h;
+  const im=ctx.getImageData(0,0,w,h), d=im.data;
+  const minLum=255-tol*1.45, maxSat=14+tol*0.55;
+  const isBg=i=>{const o=i*4,r=d[o],g=d[o+1],b=d[o+2];const mx=Math.max(r,g,b),mn=Math.min(r,g,b);return mx>=minLum&&(mx-mn)<=maxSat;};
+
+  // 1) flood de fondo desde los bordes
+  const bg=new Uint8Array(N), q=new Int32Array(N); let head=0,tail=0;
+  const enq=i=>{if(!bg[i]&&isBg(i)){bg[i]=1;q[tail++]=i;}};
+  for(let x=0;x<w;x++){enq(x);enq((h-1)*w+x);}
+  for(let y=0;y<h;y++){enq(y*w);enq(y*w+w-1);}
+  while(head<tail){const i=q[head++],x=i%w,y=(i/w)|0; if(x>0)enq(i-1); if(x<w-1)enq(i+1); if(y>0)enq(i-w); if(y<h-1)enq(i+w);}
+  const obj=new Uint8Array(N); for(let i=0;i<N;i++) obj[i]=bg[i]?0:1;
+
+  // 2) componentes conexos -> conservar los grandes
+  const lab=new Int32Array(N), q2=new Int32Array(N), sizes=[0]; let comp=0;
+  for(let s=0;s<N;s++){
+    if(obj[s]&&!lab[s]){comp++;let hh=0,tt=0;q2[tt++]=s;lab[s]=comp;let cnt=0;
+      while(hh<tt){const i=q2[hh++];cnt++;const x=i%w,y=(i/w)|0;
+        if(x>0&&obj[i-1]&&!lab[i-1]){lab[i-1]=comp;q2[tt++]=i-1;}
+        if(x<w-1&&obj[i+1]&&!lab[i+1]){lab[i+1]=comp;q2[tt++]=i+1;}
+        if(y>0&&obj[i-w]&&!lab[i-w]){lab[i-w]=comp;q2[tt++]=i-w;}
+        if(y<h-1&&obj[i+w]&&!lab[i+w]){lab[i+w]=comp;q2[tt++]=i+w;}
+      }
+      sizes[comp]=cnt;
+    }
+  }
+  let big=0; for(let c=1;c<=comp;c++) if(sizes[c]>big) big=sizes[c];
+  const minKeep=Math.max(0.02*big, 0.0004*N, 300);
+  for(let i=0;i<N;i++) if(obj[i] && sizes[lab[i]]<minKeep) obj[i]=0;
+
+  // 3) cierre (dilatar r, luego erosionar r)
+  const dil=(a,r)=>{for(let it=0;it<r;it++){const b=new Uint8Array(N);
+    for(let i=0;i<N;i++){if(a[i]){b[i]=1;continue;}const x=i%w,y=(i/w)|0;
+      if((x>0&&a[i-1])||(x<w-1&&a[i+1])||(y>0&&a[i-w])||(y<h-1&&a[i+w]))b[i]=1;} a=b;} return a;};
+  const ero=(a,r)=>{for(let it=0;it<r;it++){const b=new Uint8Array(N);
+    for(let i=0;i<N;i++){if(!a[i])continue;const x=i%w,y=(i/w)|0;
+      if((x===0||a[i-1])&&(x===w-1||a[i+1])&&(y===0||a[i-w])&&(y===h-1||a[i+w]))b[i]=1;} a=b;} return a;};
+  let m=ero(dil(obj,2),2);
+
+  // 4) feather + aplicar a alpha
+  let A=new Float32Array(N); for(let i=0;i<N;i++) A[i]=m[i]?1:0;
+  const blur=src=>{const b=new Float32Array(N);
+    for(let y=0;y<h;y++)for(let x=0;x<w;x++){let sum=0,c=0;
+      for(let dy=-1;dy<=1;dy++)for(let dx=-1;dx<=1;dx++){const xx=x+dx,yy=y+dy;
+        if(xx>=0&&xx<w&&yy>=0&&yy<h){sum+=src[yy*w+xx];c++;}}
+      b[y*w+x]=sum/c;} return b;};
+  A=blur(blur(A));
+  for(let i=0;i<N;i++) d[i*4+3]=Math.round(Math.max(0,Math.min(1,A[i]))*d[i*4+3]/255*255);
+  ctx.putImageData(im,0,0);
+  return canvas;
+}
+
+/* ALISAR CONTORNO + LIMPIAR RESIDUOS (no borra regiones de la pieza):
+   - opening pequeño: quita dientes/residuos finos del borde que no quedaron blancos
+   - closing: rellena muescas -> contorno liso
+   - se queda con la pieza principal y suaviza (feather)
+   Conserva TODO lo que el fondo blanco detectó como pieza, incluido lo borroso/del fondo. */
+function smoothContour(canvas){
+  const ctx=canvas.getContext('2d',{willReadFrequently:true});
+  const w=canvas.width,h=canvas.height,N=w*h;
+  const im=ctx.getImageData(0,0,w,h),d=im.data;
+  let m=new Uint8Array(N); for(let i=0;i<N;i++) m[i]=d[i*4+3]>100?1:0;
+
+  const dil=(a,r)=>{for(let it=0;it<r;it++){const b=new Uint8Array(N);
+    for(let i=0;i<N;i++){if(a[i]){b[i]=1;continue;}const x=i%w,y=(i/w)|0;
+      if((x>0&&a[i-1])||(x<w-1&&a[i+1])||(y>0&&a[i-w])||(y<h-1&&a[i+w]))b[i]=1;} a=b;} return a;};
+  const ero=(a,r)=>{for(let it=0;it<r;it++){const b=new Uint8Array(N);
+    for(let i=0;i<N;i++){if(!a[i])continue;const x=i%w,y=(i/w)|0;
+      if((x===0||a[i-1])&&(x===w-1||a[i+1])&&(y===0||a[i-w])&&(y===h-1||a[i+w]))b[i]=1;} a=b;} return a;};
+
+  // opening (quita protuberancias/residuos finos): erosiona 1, dilata 1
+  m=dil(ero(m,1),1);
+  // closing (alisa muescas y bordes dentados): dilata 5, erosiona 5
+  m=ero(dil(m,5),5);
+
+  // quedarse con el componente más grande (la pieza)
+  const lab=new Int32Array(N),q=new Int32Array(N),sz=[0]; let comp=0;
+  for(let s=0;s<N;s++){ if(m[s]&&!lab[s]){comp++;let hh=0,tt=0;q[tt++]=s;lab[s]=comp;let c=0;
+    while(hh<tt){const i=q[hh++];c++;const x=i%w,y=(i/w)|0;
+      if(x>0&&m[i-1]&&!lab[i-1]){lab[i-1]=comp;q[tt++]=i-1;}
+      if(x<w-1&&m[i+1]&&!lab[i+1]){lab[i+1]=comp;q[tt++]=i+1;}
+      if(y>0&&m[i-w]&&!lab[i-w]){lab[i-w]=comp;q[tt++]=i-w;}
+      if(y<h-1&&m[i+w]&&!lab[i+w]){lab[i+w]=comp;q[tt++]=i+w;}}
+    sz[comp]=c; } }
+  let big=0,bigC=0; for(let c=1;c<=comp;c++) if(sz[c]>big){big=sz[c];bigC=c;}
+  for(let i=0;i<N;i++) if(m[i] && lab[i]!==bigC && sz[lab[i]]<0.05*big) m[i]=0;
+
+  // borde DEFINIDO: una pasada de blur mínima + umbral duro (deja solo 1px de anti-alias)
+  let A=new Float32Array(N); for(let i=0;i<N;i++) A[i]=m[i]?1:0;
+  const blur=src=>{const b=new Float32Array(N);
+    for(let y=0;y<h;y++)for(let x=0;x<w;x++){let s=0,c=0;
+      for(let dy=-1;dy<=1;dy++)for(let dx=-1;dx<=1;dx++){const xx=x+dx,yy=y+dy;
+        if(xx>=0&&xx<w&&yy>=0&&yy<h){s+=src[yy*w+xx];c++;}} b[y*w+x]=s/c;} return b;};
+  A=blur(A);
+  // umbral duro -> contorno nítido, no difuso
+  for(let i=0;i<N;i++){ const v=Math.max(0,Math.min(1,(A[i]-0.4)/0.25)); d[i*4+3]=Math.round(v*255); }
+  ctx.putImageData(im,0,0);
+  return canvas;
+}
+
+/* RECORTE EXTERIOR CON IA (borde definido + sin halo + sin residuos):
+   mask_final = whiteKey ∩ dilate(erode(IA_objeto))
+   - erosiona el objeto IA -> quita el halo gris del borde (spill del fondo)
+   - dilata un margen menor -> borde ceñido al objeto real, sin tocar lo borroso pegado
+   - elimina micro-residuos sueltos (componentes pequeños no unidos a la pieza)
+   wkCanvas: alpha del fondo blanco. aiAlpha: alpha de la IA (misma resolución). */
+function clipByAI(wkCanvas, aiAlpha, w, h, marginFrac){
+  const N=w*h;
+  const ctx=wkCanvas.getContext('2d',{willReadFrequently:true});
+  const im=ctx.getImageData(0,0,w,h), d=im.data;
+  let obj=new Uint8Array(N); for(let i=0;i<N;i++) obj[i]=aiAlpha[i]>0.10?1:0;
+  const dil=(a,r)=>{for(let it=0;it<r;it++){const b=new Uint8Array(N);
+    for(let i=0;i<N;i++){if(a[i]){b[i]=1;continue;}const x=i%w,y=(i/w)|0;
+      if((x>0&&a[i-1])||(x<w-1&&a[i+1])||(y>0&&a[i-w])||(y<h-1&&a[i+w]))b[i]=1;} a=b;} return a;};
+  const ero=(a,r)=>{for(let it=0;it<r;it++){const b=new Uint8Array(N);
+    for(let i=0;i<N;i++){if(!a[i])continue;const x=i%w,y=(i/w)|0;
+      if((x===0||a[i-1])&&(x===w-1||a[i+1])&&(y===0||a[i-w])&&(y===h-1||a[i+w]))b[i]=1;} a=b;} return a;};
+  const er=Math.max(2, Math.round(Math.min(w,h)*0.006));     // erosión: quita halo gris
+  const R =Math.max(3, Math.round(Math.min(w,h)*(marginFrac||0.012))); // margen ceñido
+  obj=dil(ero(obj,er), R);
+  let cnt=0; for(let i=0;i<N;i++) cnt+=obj[i];
+  if(cnt < N*0.005){ return wkCanvas; }   // IA falló -> no recorta
+  // intersección
+  for(let i=0;i<N;i++){ if(!obj[i]) d[i*4+3]=0; }
+  // quitar micro-residuos sueltos: conservar solo componentes grandes del alpha resultante
+  const m=new Uint8Array(N); for(let i=0;i<N;i++) m[i]=d[i*4+3]>40?1:0;
+  const lab=new Int32Array(N), q=new Int32Array(N), sz=[0]; let comp=0;
+  for(let s=0;s<N;s++){ if(m[s]&&!lab[s]){comp++;let hh=0,tt=0;q[tt++]=s;lab[s]=comp;let c=0;
+    while(hh<tt){const i=q[hh++];c++;const x=i%w,y=(i/w)|0;
+      if(x>0&&m[i-1]&&!lab[i-1]){lab[i-1]=comp;q[tt++]=i-1;}
+      if(x<w-1&&m[i+1]&&!lab[i+1]){lab[i+1]=comp;q[tt++]=i+1;}
+      if(y>0&&m[i-w]&&!lab[i-w]){lab[i-w]=comp;q[tt++]=i-w;}
+      if(y<h-1&&m[i+w]&&!lab[i+w]){lab[i+w]=comp;q[tt++]=i+w;}}
+    sz[comp]=c; } }
+  let big=0; for(let c=1;c<=comp;c++) if(sz[c]>big) big=sz[c];
+  const minKeep=Math.max(0.03*big, 0.0006*N, 600);
+  for(let i=0;i<N;i++) if(m[i] && sz[lab[i]]<minKeep) d[i*4+3]=0;
+  ctx.putImageData(im,0,0);
+  return wkCanvas;
+}
+function enhance(canvas){
+  const ctx=canvas.getContext('2d',{willReadFrequently:true}), w=canvas.width, h=canvas.height;
+  const im=ctx.getImageData(0,0,w,h), d=im.data;
+  // auto-niveles suaves usando percentiles de la pieza
+  const hist=new Float64Array(256); let cnt=0, lo=0, hi=255;
+  for(let i=0;i<d.length;i+=4){ if(d[i+3]<150) continue; hist[(0.299*d[i]+0.587*d[i+1]+0.114*d[i+2])|0]++; cnt++; }
+  if(cnt>200){ let acc=0; for(let v=0;v<256;v++){acc+=hist[v]; if(acc>=cnt*0.015){lo=v;break;}}
+    acc=0; for(let v=255;v>=0;v--){acc+=hist[v]; if(acc>=cnt*0.01){hi=v;break;}} }
+  const span=(hi-lo)>8?(hi-lo):255, mixL=0.65, useL=cnt>200;
+  const b=1.03, c=1.06, s=1.07, ci=(c-1)*128;
+  for(let i=0;i<d.length;i+=4){
+    if(d[i+3]<4) continue;
+    let r=d[i], g=d[i+1], bl=d[i+2];
+    if(useL){
+      r = r*(1-mixL)+Math.max(0,Math.min(255,(r-lo)*255/span))*mixL;
+      g = g*(1-mixL)+Math.max(0,Math.min(255,(g-lo)*255/span))*mixL;
+      bl= bl*(1-mixL)+Math.max(0,Math.min(255,(bl-lo)*255/span))*mixL;
+    }
+    r*=b; g*=b; bl*=b;
+    r=r*c-ci; g=g*c-ci; bl=bl*c-ci;
+    const lum=0.299*r+0.587*g+0.114*bl;
+    r=lum+(r-lum)*s; g=lum+(g-lum)*s; bl=lum+(bl-lum)*s;
+    d[i]=r; d[i+1]=g; d[i+2]=bl;
+  }
+  ctx.putImageData(im,0,0);
+  sharpen(canvas,0.5);
+}
+/* unsharp ligero 3x3, ignora pixeles transparentes */
+function sharpen(canvas, amt){
+  const ctx=canvas.getContext('2d',{willReadFrequently:true}), w=canvas.width, h=canvas.height;
+  if(w*h>16_000_000) return;   // permite alta resolución (hasta ~4000px) para nitidez en zoom
+  const src=ctx.getImageData(0,0,w,h), s=src.data;
+  const out=ctx.createImageData(w,h), o=out.data;
+  const k=[0,-amt,0,-amt,1+4*amt,-amt,0,-amt,0];
+  for(let y=0;y<h;y++)for(let x=0;x<w;x++){
+    const idx=(y*w+x)*4;
+    o[idx+3]=s[idx+3];
+    if(s[idx+3]<8){o[idx]=s[idx];o[idx+1]=s[idx+1];o[idx+2]=s[idx+2];continue;}
+    for(let ch=0;ch<3;ch++){
+      let sum=0,ki=0;
+      for(let dy=-1;dy<=1;dy++)for(let dx=-1;dx<=1;dx++){
+        const xx=Math.min(w-1,Math.max(0,x+dx)), yy=Math.min(h-1,Math.max(0,y+dy));
+        sum+=s[(yy*w+xx)*4+ch]*k[ki++];
+      }
+      o[idx+ch]=sum;
+    }
+  }
+  ctx.putImageData(out,0,0);
+}
+
+/* silueta de la pieza recoloreada (para la marca de agua de respaldo / sombra) */
+function tinted(canvas, color){
+  const o=document.createElement('canvas'); o.width=canvas.width; o.height=canvas.height;
+  const c=o.getContext('2d'); c.drawImage(canvas,0,0);
+  c.globalCompositeOperation='source-in'; c.fillStyle=color; c.fillRect(0,0,o.width,o.height);
+  return o;
+}
+
+/* ---------- pipeline principal ---------- */
+/* Aplica el recorte (alpha) de remove.bg sobre la foto ORIGINAL en alta resolución.
+   La forma del recorte viene de la nube; los píxeles de la pieza, de la foto original
+   a resolución completa -> recorte limpio + nitidez real para hacer zoom (FHD+). */
+function compositeHiRes(srcImg, cutImg){
+  const cap=3000;   // límite por memoria de celular
+  const k=Math.min(1, cap/Math.max(srcImg.naturalWidth, srcImg.naturalHeight));
+  const W=Math.round(srcImg.naturalWidth*k), H=Math.round(srcImg.naturalHeight*k);
+  // RGB: foto original a resolución completa
+  const out=document.createElement('canvas'); out.width=W; out.height=H;
+  const octx=out.getContext('2d',{willReadFrequently:true});
+  octx.imageSmoothingEnabled=true; octx.imageSmoothingQuality='high';
+  octx.drawImage(srcImg,0,0,W,H);
+  // alpha: recorte de la nube escalado (suave) a la misma resolución
+  const ac=document.createElement('canvas'); ac.width=W; ac.height=H;
+  const actx=ac.getContext('2d',{willReadFrequently:true});
+  actx.imageSmoothingEnabled=true; actx.imageSmoothingQuality='high';
+  actx.drawImage(cutImg,0,0,W,H);
+  const aD=actx.getImageData(0,0,W,H).data;
+  const oimg=octx.getImageData(0,0,W,H), oD=oimg.data;
+  // aplicar alpha de la nube al RGB original; descontaminar borde semitransparente
+  for(let i=0;i<oD.length;i+=4){
+    const a=aD[i+3]; oD[i+3]=a;
+    if(a>10 && a<245){ const a01=a/255; for(let c=0;c<3;c++){ oD[i+c]=Math.max(0,Math.min(255,(oD[i+c]-(1-a01)*255)/a01)); } }
+  }
+  octx.putImageData(oimg,0,0);
+  return out;
+}
+
+/* recorte profesional vía remove.bg -> PNG con alpha de máxima calidad */
+async function removeBgCloud(file, key){
+  const fd=new FormData();
+  fd.append('image_file', file);
+  fd.append('size','auto');
+  fd.append('format','png');
+  const r=await fetch('https://api.remove.bg/v1.0/removebg',{ method:'POST', headers:{'X-Api-Key':key}, body:fd });
+  if(!r.ok){
+    let msg=r.status+'';
+    if(r.status===403) msg='clave inválida o sin créditos (403)';
+    else if(r.status===402) msg='sin créditos suficientes (402)';
+    else if(r.status===429) msg='demasiadas solicitudes, espera un momento (429)';
+    else { try{ const j=await r.json(); if(j&&j.errors&&j.errors[0]) msg=j.errors[0].title||msg; }catch(_){} }
+    throw new Error(msg);
+  }
+  return await r.blob();
+}
+
+async function process(file){
+  setProg(0);
+  let piece;
+
+  if(CUT==='cloud'){
+    // RECORTE PROFESIONAL EN LA NUBE (remove.bg) aplicado sobre la foto ORIGINAL
+    // en alta resolución -> recorte limpio + máxima nitidez real (FHD+).
+    const key=($('apiKey').value||'').trim();
+    if(!key){ setStatus('Pega tu API key de remove.bg arriba para usar el modo Nube · Pro.', true); throw new Error('sin api key'); }
+    setStatus('Recortando en la nube (calidad Pro)…'); setProg(.25);
+    let blob;
+    try{ blob = await removeBgCloud(file, key); }
+    catch(err){ setStatus('Error en la nube: '+err.message, true); throw err; }
+    setProg(.7); setStatus('Aplicando recorte sobre tu foto en alta resolución…');
+    const cut = await loadImage(URL.createObjectURL(blob));   // recorte (previa, posible baja res)
+    const src = await loadImage(URL.createObjectURL(file));   // foto ORIGINAL full-res
+    piece = compositeHiRes(src, cut);                         // alpha de la nube + RGB original
+  } else if(CUT==='white'){
+    setStatus('Separando la pieza del fondo blanco…');
+    const src = await loadImage(URL.createObjectURL(file));
+    const cap = 2200;
+    const k = Math.min(1, cap/Math.max(src.naturalWidth, src.naturalHeight));
+    const c = document.createElement('canvas');
+    c.width = Math.round(src.naturalWidth*k);
+    c.height = Math.round(src.naturalHeight*k);
+    c.getContext('2d',{willReadFrequently:true}).drawImage(src,0,0,c.width,c.height);
+    setProg(.4);
+    whiteKey(c, +$('tol').value);
+    setProg(.72);
+    if(REF){ setProg(.8); setStatus('Refinando bordes (filtro guiado)…'); refineEdge(c); }
+    piece = c;
+  } else {
+    // IA LOCAL: fondo blanco como base + IA recorta el exterior con margen de seguridad
+    setStatus('Recortando pieza por fondo blanco…');
+    const src = await loadImage(URL.createObjectURL(file));
+    const cap = 2200;
+    const k = Math.min(1, cap/Math.max(src.naturalWidth, src.naturalHeight));
+    const wkC = document.createElement('canvas');
+    wkC.width = Math.round(src.naturalWidth*k); wkC.height = Math.round(src.naturalHeight*k);
+    wkC.getContext('2d',{willReadFrequently:true}).drawImage(src,0,0,wkC.width,wkC.height);
+    setProg(.25);
+    whiteKey(wkC, +$('tol').value);
+    setStatus('Detectando objeto con IA…');
+    let aiOk=false, aiAlpha=null;
+    try{
+      const cutBlob = await removeBackground(file, {
+        output:{ format:'image/png' },
+        progress:(key,cur,tot)=>{ if(key.startsWith('fetch')) setStatus('Descargando modelo IA… (1ª vez, luego queda en caché)'); setProg(tot?Math.min(.62,0.3+cur/tot*.32):.4); }
+      });
+      const cut=await loadImage(URL.createObjectURL(cutBlob));
+      const aiC=document.createElement('canvas'); aiC.width=wkC.width; aiC.height=wkC.height;
+      aiC.getContext('2d',{willReadFrequently:true}).drawImage(cut,0,0,aiC.width,aiC.height);
+      const ad=aiC.getContext('2d',{willReadFrequently:true}).getImageData(0,0,aiC.width,aiC.height).data;
+      aiAlpha=new Float32Array(aiC.width*aiC.height);
+      for(let i=0;i<aiAlpha.length;i++) aiAlpha[i]=ad[i*4+3]/255;
+      aiOk=true;
+    }catch(err){
+      console.warn('IA no disponible, se usa solo fondo blanco', err);
+      setStatus('IA no disponible (sin conexión). Uso solo fondo blanco.', true);
+    }
+    if(aiOk){ setProg(.68); setStatus('Recortando fondo con IA (margen de seguridad)…'); clipByAI(wkC, aiAlpha, wkC.width, wkC.height, 0.012); }
+    setProg(.78); setStatus('Alisando contorno y limpiando residuos…');
+    smoothContour(wkC);
+    smoothContour(wkC);
+    piece = wkC;
+  }
+  piece = trim(piece).canvas;
+  if(ENH) enhance(piece);
+
+  setProg(.88); setStatus('Componiendo catálogo…');
+
+  // lienzo final cuadrado, fondo blanco puro
+  const S=RES;
+  const out=document.createElement('canvas'); out.width=S; out.height=S;
+  const ctx=out.getContext('2d');
+  const onWhite = OUTBG==='white';
+  if(onWhite){ ctx.fillStyle='#FFFFFF'; ctx.fillRect(0,0,S,S); }
+
+  // dimensiones de la pieza centrada (margin >1 permite acercar y salirse del lienzo)
+  const margin=(+ $('size').value)/100;
+  const maxW=S*margin, maxH=S*margin;
+  const scale=Math.min(maxW/piece.width, maxH/piece.height);
+  const dw=piece.width*scale, dh=piece.height*scale;
+  const dx=(S-dw)/2, dy=(S-dh)/2;   // si dw/dh > S, dx/dy son negativos (recorte por encuadre)
+
+  // halo espacial sutil (negro detrás) — solo sobre fondo blanco
+  const haA=(+$('ha').value)/100;
+  if(onWhite && haA>0){
+    const cx=S/2, cy=S/2, r=Math.max(dw,dh)*0.62;
+    const g=ctx.createRadialGradient(cx,cy,r*0.2,cx,cy,r);
+    g.addColorStop(0,`rgba(5,5,7,${0.10*haA})`);
+    g.addColorStop(0.6,`rgba(5,5,7,${0.05*haA})`);
+    g.addColorStop(1,'rgba(5,5,7,0)');
+    ctx.fillStyle=g; ctx.beginPath(); ctx.arc(cx,cy,r,0,7); ctx.fill();
+  }
+
+  // sombras de estudio — solo sobre fondo blanco
+  const shA=(+$('sh').value)/100;
+  if(onWhite && shA>0){
+    // 1) sombra suave de silueta (difusa, ligeramente abajo)
+    ctx.save();
+    const OFF=200000;
+    ctx.shadowColor=`rgba(0,0,0,${0.26*shA})`;
+    ctx.shadowBlur=Math.round(S*0.026*(0.5+shA));
+    ctx.shadowOffsetX=OFF;
+    ctx.shadowOffsetY=Math.round(dh*0.045);
+    ctx.drawImage(piece, dx-OFF, dy, dw, dh);
+    ctx.restore();
+    // 2) sombra de contacto (elipse difusa bajo la pieza) -> aspecto flotando en estudio
+    ctx.save();
+    ctx.translate(S/2, dy+dh);
+    ctx.scale(1, 0.13);
+    const rg=ctx.createRadialGradient(0,0,1,0,0,dw*0.5);
+    rg.addColorStop(0,`rgba(0,0,0,${0.30*shA})`);
+    rg.addColorStop(1,'rgba(0,0,0,0)');
+    ctx.fillStyle=rg; ctx.beginPath(); ctx.arc(0,0,dw*0.5,0,7); ctx.fill();
+    ctx.restore();
+  }
+
+  // pieza
+  ctx.drawImage(piece, dx, dy, dw, dh);
+
+  // marca de agua / logo: posición seleccionable
+  if(state.logo){
+    const pos=LOGOPOS;
+    const ratio=state.logo.naturalHeight/state.logo.naturalWidth;
+    // ancho: relativo a la pieza si va al centro; al lienzo si va a una esquina
+    const base = (pos==='center') ? dw : S;
+    const lw = base*((+$('logoW').value)/100);
+    const lh = lw*ratio;
+    // recolorear logo a gris claro
+    const tmp=document.createElement('canvas'); tmp.width=state.logo.naturalWidth; tmp.height=state.logo.naturalHeight;
+    const tc=tmp.getContext('2d'); tc.drawImage(state.logo,0,0);
+    tc.globalCompositeOperation='source-in'; tc.fillStyle='#cfcfcf'; tc.fillRect(0,0,tmp.width,tmp.height);
+    // coordenadas según posición
+    let lx, ly;
+    const pad = S*0.04;   // margen desde el borde en las esquinas
+    if(pos==='center'){ lx = dx+(dw-lw)/2; ly = dy+(dh-lh)/2; }
+    else if(pos==='tl'){ lx = pad;            ly = pad; }
+    else if(pos==='tr'){ lx = S-lw-pad;       ly = pad; }
+    else if(pos==='bl'){ lx = pad;            ly = S-lh-pad; }
+    else { /* br */      lx = S-lw-pad;       ly = S-lh-pad; }
+    ctx.save();
+    ctx.globalAlpha=(+$('op').value)/100;
+    ctx.drawImage(tmp, lx, ly, lw, lh);
+    ctx.restore();
+  }
+
+  setProg(1); setStatus(state.logo?'✔ Listo. Catálogo generado.':'✔ Listo (sin logo — cárgalo para la marca de agua).');
+  return out;
+}
+
+function showResult(canvas){
+  state.lastCanvas=canvas;
+  const stage=$('stage'); stage.innerHTML=''; stage.appendChild(canvas);
+  $('dl').disabled=false;
+}
+
+$('go').onclick = async () => {
+  if(state.active<0) return;
+  $('go').disabled=true;
+  try{ showResult(await process(state.photos[state.active])); }
+  catch(e){ console.error(e); }
+  finally{ $('go').disabled=false; refreshButtons(); }
+};
+
+$('dl').onclick = () => {
+  if(!state.lastCanvas) return;
+  state.lastCanvas.toBlob(b=>{
+    const a=document.createElement('a'); a.href=URL.createObjectURL(b);
+    a.download='blackwings_'+Date.now()+'.png'; a.click();
+  },'image/png',1.0);
+};
+
+$('batch').onclick = async () => {
+  $('batch').disabled=true; $('go').disabled=true;
+  const zip=new JSZip();
+  for(let i=0;i<state.photos.length;i++){
+    setStatus(`Procesando ${i+1} de ${state.photos.length}…`);
+    try{
+      const c=await process(state.photos[i]);
+      const blob=await new Promise(r=>c.toBlob(r,'image/png',1.0));
+      zip.file('blackwings_'+String(i+1).padStart(2,'0')+'.png', blob);
+    }catch(e){ console.error(e); }
+  }
+  setStatus('Comprimiendo .zip…');
+  const out=await zip.generateAsync({type:'blob'});
+  const a=document.createElement('a'); a.href=URL.createObjectURL(out); a.download='black-wings-catalogo.zip'; a.click();
+  setStatus('✔ Lote completo (.zip descargado).'); $('go').disabled=false; refreshButtons();
+};
+
+/* registro del Service Worker (PWA instalable / offline shell) */
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('sw.js', { scope: './' }).catch(err => console.warn('SW no registrado:', err));
+  });
+}
+</script>
+</body>
+</html>
